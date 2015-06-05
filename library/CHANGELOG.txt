@@ -1,0 +1,3 @@
+##0.0.2
+
+*  Many little bugfixes, for an actually working library

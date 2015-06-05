@@ -226,10 +226,10 @@ class Cap1xxx():
         self.set_repeat_rate(210)
 
         # Tested sane defaults for various configurations
-        self._write_byte(captouch.R_SAMPLING_CONFIG, 0b00001000) # 1sample per measure, 1.28ms time, 35ms cycle
-        self._write_byte(captouch.R_SENSITIVITY,     0b01100000) # 2x sensitivity
-        self._write_byte(captouch.R_GENERAL_CONFIG,  0b00111000)
-        self._write_byte(captouch.R_CONFIGURATION2,  0b01100000)
+        self._write_byte(R_SAMPLING_CONFIG, 0b00001000) # 1sample per measure, 1.28ms time, 35ms cycle
+        self._write_byte(R_SENSITIVITY,     0b01100000) # 2x sensitivity
+        self._write_byte(R_GENERAL_CONFIG,  0b00111000)
+        self._write_byte(R_CONFIGURATION2,  0b01100000)
         self.set_touch_delta(10)
 
         atexit.register(self.stop_watching)
@@ -243,7 +243,7 @@ class Cap1xxx():
         threshold = self._read_block(R_INPUT_1_THRESH, self.number_of_inputs)
         delta = self._read_block(R_INPUT_1_DELTA, self.number_of_inputs)
         #status = ['none'] * 8
-        for x in range(number_of_inputs):
+        for x in range(self.number_of_inputs):
             if (1 << x) & touched:
                 status = 'none'
                 _delta = self._get_twos_comp(delta[x]) 
@@ -341,7 +341,7 @@ class Cap1xxx():
     def _calc_touch_rate(self, ms):
         ms = min(max(ms,0),560)
         scale = int((round(ms / 35.0) * 35) - 35) / 35
-        return scale
+        return int(scale)
 
     def _poll(self):
         """Single polling pass, should be called in
@@ -349,7 +349,7 @@ class Cap1xxx():
         self.count += 1        
         if self.wait_for_interrupt():
             inputs = self.get_input_status()
-            for x in range(8):
+            for x in range(self.number_of_inputs):
                 self._trigger_handler(x, inputs[x])
             self.clear_interrupt()
         
