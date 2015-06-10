@@ -141,6 +141,15 @@ R_PRODUCT_ID      = 0xFD
 R_MANUFACTURER_ID = 0xFE
 R_REVISION        = 0xFF
 
+# LED Behaviour settings
+LED_BEHAVIOUR_DIRECT  = 0b00
+LED_BEHAVIOUR_PULSE1  = 0b01
+LED_BEHAVIOUR_PULSE2  = 0b10
+LED_BEHAVIOUR_BREATHE = 0b11
+
+LED_OPEN_DRAIN = 0 # Default, LED is open-drain output with ext pullup
+LED_PUSH_PULL  = 1 # LED is driven HIGH/LOW with logic 1/0
+
 ## Basic stoppable thread wrapper
 #
 #  Adds Event for stopping the execution loop
@@ -180,9 +189,16 @@ class AsyncWorker(StoppableThread):
                 break
 
 
+class CapTouchEvent():
+    def __init__(self, channel, event, delta):
+        self.channel = channel
+        self.event = event
+        self.delta = delta
+
 class Cap1xxx():
     supported = [PID_CAP1208, PID_CAP1188, PID_CAP1166]
     number_of_inputs = 8
+    number_of_leds   = 8
   
     def __init__(self, i2c_addr=DEFAULT_ADDR, i2c_bus=1, on_touch=None):
 
@@ -204,6 +220,7 @@ class Cap1xxx():
         self.touch_handlers    = on_touch
         self.last_input_status = [False]  * self.number_of_inputs
         self.input_status      = ['none'] * self.number_of_inputs
+        self.input_delta       = [0] * self.number_of_inputs
         self.input_pressed     = [False]  * self.number_of_inputs
         self.repeat_enabled    = 0b00000000
         self.release_enabled   = 0b11111111
@@ -252,6 +269,7 @@ class Cap1xxx():
                 # We only ever want to detect PRESS events
                 # If repeat is disabled, and release detect is enabled
                 if _delta >= threshold[x]: # self._delta:
+                    self.input_delta[x] = _delta
                     #  Touch down event
                     if self.input_status[x] in ['press','held']:
                         if self.repeat_enabled & (1 << x):
@@ -362,7 +380,10 @@ class Cap1xxx():
         if event == 'none':
             return
         if callable(self.handlers[event][channel]):
-            self.handlers[event][channel](channel, event)
+            try:
+                self.handlers[event][channel](CapTouchEvent(channel, event, self.input_delta[channel]))
+            except TypeError:
+                self.handlers[event][channel](channel, event)
 
     def _get_product_id(self):
         return self._read_byte(R_PRODUCT_ID)
@@ -398,18 +419,136 @@ class Cap1xxx():
     def _millis(self):
         return int(round(time.time() * 1000))
 
+    def _set_bit(self, register, bit):
+        self._write_byte( register, self._read_byte(register) | (1 << bit) )
+
+    def _clear_bit(self, register, bit):
+        self._write_byte( register, self._read_byte(register) & ~(1 << bit ) )
+
+    def _change_bit(self, register, bit, state):
+        if state:
+            self._set_bit(register, bit)
+        else:
+            self._clear_bit(register, bit)
+
+    def _change_bits(self, register, offset, size, bits):
+        original_value = self._read_byte(register)
+        for x in range(size):
+            original_value &= ~(1 << (offset+x))
+        original_value |= (bits << offset)
+        self._write_byte(register, original_value)
+
     def __del__(self):
         self.stop_watching()
         
+class Cap1xxxLeds(Cap1xxx):
+    def set_led_linking(self, led_index, state):
+        if led_index >= self.number_of_leds:
+            return False
+        self._change_bit(R_LED_LINKING, led_index, state)
+
+    def set_led_output_type(self, led_index, state):
+        if led_index >= self.number_of_leds:
+            return False
+        self._change_bit(R_LED_OUTPUT_TYPE, led_index, state)
+ 
+    def set_led_state(self, led_index, state):
+        if led_index >= self.number_of_leds:
+            return False
+        self._change_bit(R_LED_OUTPUT_CON, led_index, state)
+
+    def set_led_polarity(self, led_index, state):
+        if led_index >= self.number_of_leds:
+            return False
+        self._change_bit(R_LED_POLARITY, led_index, state)
+
+    def set_led_behaviour(self, led_index, value):
+        '''Set the behaviour of a LED'''
+        offset = (led_index * 2) % 8
+        register = led_index / 4
+        value &= 0b00000011
+        self._change_bits(R_LED_BEHAVIOUR_1 + register, offset, 2, value)
+
+    def set_led_pulse1_period(self, period_in_seconds):
+        '''Set the overall period of a pulse from 32ms to 4.064 seconds'''
+        period_in_seconds = min(period_in_seconds, 4.064)
+        value = int(period_in_seconds * 1000.0 / 32.0) & 0b01111111
+        self._change_bits(R_LED_PULSE_1_PER, 0, 7, value)
+
+    def set_led_pulse2_period(self, period_in_seconds):
+        '''Set the overall period of a pulse from 32ms to 4.064 seconds'''
+        period_in_seconds = min(period_in_seconds, 4.064)
+        value = int(period_in_seconds * 1000.0 / 32.0) & 0b01111111
+        self._change_bits(R_PULSE_LED_2_PER, 0, 7, value)
+
+    def set_led_breathe_period(self, period_in_seconds):
+        period_in_seconds = min(period_in_seconds, 4.064)
+        value = int(period_in_seconds * 1000.0 / 32.0) & 0b01111111
+        self._change_bits(R_LED_BREATHE_PER, 0, 7, value)
+
+    def set_led_pulse1_count(self, count):
+        count -= 1
+        count &= 0b111
+        self._change_bits(R_LED_CONFIG, 0, 3, count)
+
+    def set_led_pulse2_count(self, count):
+        count -= 1
+        count &= 0b111
+        self._change_bits(R_LED_CONFIG, 3, 3, count)
+
+    def set_led_ramp_alert(self, value):
+        self._change_bit(R_LED_CONFIG, 6, value)
+
+    def set_led_direct_duty(self, duty_min, duty_max):
+        value = (duty_max << 4) | duty_min
+        self._write_byte(R_LED_DIRECT_DUT, value)
+
+    def set_led_pulse1_duty(self, duty_min, duty_max):
+        value = (duty_max << 4) | duty_min
+        self._write_byte(R_LED_PULSE_1_DUT, value)
+
+    def set_led_pulse2_duty(self, duty_min, duty_max):
+        value = (duty_max << 4) | duty_min
+        self._write_byte(R_LED_PULSE_2_DUT, value)
+
+    def set_led_breathe_duty(self, duty_min, duty_max):
+        value = (duty_max << 4) | duty_min
+        self._write_byte(R_LED_BREATHE_DUT, value)
+
+    def set_led_direct_min_duty(self, value):
+        self._change_bits(R_LED_DIRECT_DUT, 0, 4, value)
+
+    def set_led_direct_max_duty(self, value):
+        self._change_bits(R_LED_DIRECT_DUT, 4, 4, value)
+
+    def set_led_breathe_min_duty(self, value):
+        self._change_bits(R_LED_BREATHE_DUT, 0, 4, value)
+
+    def set_led_breathe_max_duty(self, value):
+        self._change_bits(R_LED_BREATHE_DUT, 4, 4, value)
+
+    def set_led_pulse1_min_duty(self, value):
+        self._change_bits(R_LED_PULSE_1_DUT, 0, 4, value)
+
+    def set_led_pulse1_max_duty(self, value):
+        self._change_bits(R_LED_PULSE_1_DUT, 4, 4, value)
+
+    def set_led_pulse2_min_duty(self, value):
+        self._change_bits(R_LED_PULSE_2_DUT, 0, 4, value)
+
+    def set_led_pulse2_max_duty(self, value):
+        self._change_bits(R_LED_PULSE_2_DUT, 4, 4, value)
 
 class Cap1208(Cap1xxx):
     supported = [PID_CAP1208]
 
-class Cap1188(Cap1xxx):
+class Cap1188(Cap1xxxLeds):
+    number_of_leds  = 8
     supported = [PID_CAP1188]
 
-class Cap1166(Cap1xxx):
+class Cap1166(Cap1xxxLeds):
     number_of_inputs = 6
+    number_of_leds   = 6
     supported = [PID_CAP1166]
 
 def DetectCap(i2c_addr, i2c_bus, product_id):
