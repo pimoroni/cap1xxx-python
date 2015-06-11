@@ -390,10 +390,10 @@ class Cap1xxx():
         self._change_bit(R_GENERAL_CONFIG, 3, value)
         
     def filter_analog_noise(self, value):
-        self._change_bit(R_GENERAL_CONFIG, 4, !value)
+        self._change_bit(R_GENERAL_CONFIG, 4, not value)
         
     def filter_digital_noise(self, value):
-        self._change_bit(R_GENERAL_CONFIG, 5, !value)
+        self._change_bit(R_GENERAL_CONFIG, 5, not value)
 
     def set_hold_delay(self, ms):
         """Set time before a press and hold is detected,
