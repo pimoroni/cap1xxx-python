@@ -11,6 +11,7 @@ except ImportError:
     exit("This library requires python-smbus\nInstall with: sudo apt-get install python-smbus")
 
 import time, signal, atexit, sys, threading
+import RPi.GPIO as GPIO
 
 # DEVICE MAP
 DEFAULT_ADDR = 0x28
@@ -200,16 +201,35 @@ class Cap1xxx():
     number_of_inputs = 8
     number_of_leds   = 8
   
-    def __init__(self, i2c_addr=DEFAULT_ADDR, i2c_bus=1, on_touch=None):
+    def __init__(self, *args, **kwargs):
+        i2c_addr  = kwargs.get('i2c_addr',DEFAULT_ADDR)
+        i2c_bus   = kwargs.get('i2c_bus', 1)
+        alert_pin = kwargs.get('alert_pin', -1)
+        reset_pin = kwargs.get('reset_pin', -1)
+        on_touch  = kwargs.get('on_touch', None)
+    #def __init__(self, i2c_addr=DEFAULT_ADDR, i2c_bus=1, alert_pin=-1, reset_pin=-1, on_touch=None):
 
         if on_touch == None:
             on_touch = [None] * self.number_of_inputs
 
         self.async_poll = None
-        self.i2c_addr = i2c_addr
-        self.i2c    = SMBus(i2c_bus)
-        self.count  = 0
-        self._delta = 50
+        self.i2c_addr   = i2c_addr
+        self.i2c        = SMBus(i2c_bus)
+        self.alert_pin  = alert_pin
+        self.reset_pin  = reset_pin
+        self.count      = 0
+        self._delta     = 50
+
+        GPIO.setmode(GPIO.BCM)
+        if not self.alert_pin == -1:
+            GPIO.setup(self.alert_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+
+        if not self.reset_pin == -1:
+            GPIO.setup(self.reset_pin,  GPIO.OUT)
+            GPIO.setup(self.reset_pin,  GPIO.LOW)
+            GPIO.output(self.reset_pin, GPIO.HIGH)
+            time.sleep(0.01)
+            GPIO.output(self.reset_pin, GPIO.LOW)
 
         self.handlers = {
             'press'   : [None] * self.number_of_inputs,
@@ -305,14 +325,20 @@ class Cap1xxx():
         main &= ~0b00000001
         self._write_byte(R_MAIN_CONTROL, main)
 
+    def _interrupt_status(self):
+        if self.alert_pin == -1:
+            return self._read_byte(R_MAIN_CONTROL) & 1
+        else:
+            return not GPIO.input(self.alert_pin)
+
     def wait_for_interrupt(self, timeout=100):
         """Wait for, interrupt, bit 0 of the main
         control register to be set, indicating an
         input has been triggered."""
         start = self._millis()
         while True:
-            status = self._read_byte(R_MAIN_CONTROL)
-            if status & 1:
+            status = self._interrupt_status() # self._read_byte(R_MAIN_CONTROL)
+            if status:
                 return True
             if self._millis() > start + timeout:
                 return False
