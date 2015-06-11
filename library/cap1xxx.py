@@ -40,9 +40,21 @@ R_INPUT_7_DELTA   = 0x16
 R_INPUT_8_DELTA   = 0x17
 
 R_SENSITIVITY     = 0x1F
+# B7     = N/A
+# B6..B4 = Sensitivity
+# B3..B0 = Base Shift
+SENSITIVITY = {128: 0b000, 64:0b001, 32:0b010, 16:0b011, 8:0b100, 4:0b100, 2:0b110, 1:0b111}
 
 R_GENERAL_CONFIG  = 0x20
+# B7 = Timeout
+# B6 = Wake Config ( 1 = Wake pin asserted )
+# B5 = Disable Digital Noise ( 1 = Noise threshold disabled )
+# B4 = Disable Analog Noise ( 1 = Low frequency analog noise blocking disabled )
+# B3 = Max Duration Recalibration ( 1 =  Enable recalibration if touch is held longer than max duration )
+# B2..B0 = N/A
+
 R_INPUT_ENABLE    = 0x21
+
 
 R_INPUT_CONFIG    = 0x22
 
@@ -85,7 +97,15 @@ R_STANDBY_CHANNEL = 0x40
 R_STANDBY_CONFIG  = 0x41
 R_STANDBY_SENS    = 0x42
 R_STANDBY_THRESH  = 0x43
+
 R_CONFIGURATION2  = 0x44
+# B7 = Linked LED Transition Controls ( 1 = LED trigger is !touch )
+# B6 = Alert Polarity ( 1 = Active Low Open Drain, 0 = Active High Push Pull )
+# B5 = Reduce Power ( 1 = Do not power down between poll )
+# B4 = Link Polarity/Mirror bits ( 0 = Linked, 1 = Unlinked )
+# B3 = Show RF Noise ( 1 = Noise status registers only show RF, 0 = Both RF and EMI shown )
+# B2 = Disable RF Noise ( 1 = Disable RF noise filter )
+# B1..B0 = N/A
 
 # Read-only reference counts for sensor inputs
 R_INPUT_1_BCOUNT  = 0x50
@@ -365,6 +385,15 @@ class Cap1xxx():
 
     def set_touch_delta(self, delta):
         self._delta = delta
+
+    def auto_recalibrate(self, value):
+        self._change_bit(R_GENERAL_CONFIG, 3, value)
+        
+    def filter_analog_noise(self, value):
+        self._change_bit(R_GENERAL_CONFIG, 4, !value)
+        
+    def filter_digital_noise(self, value):
+        self._change_bit(R_GENERAL_CONFIG, 5, !value)
 
     def set_hold_delay(self, ms):
         """Set time before a press and hold is detected,
