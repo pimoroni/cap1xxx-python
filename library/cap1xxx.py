@@ -221,14 +221,7 @@ class Cap1xxx():
     number_of_inputs = 8
     number_of_leds   = 8
   
-    def __init__(self, *args, **kwargs):
-        i2c_addr  = kwargs.get('i2c_addr',DEFAULT_ADDR)
-        i2c_bus   = kwargs.get('i2c_bus', 1)
-        alert_pin = kwargs.get('alert_pin', -1)
-        reset_pin = kwargs.get('reset_pin', -1)
-        on_touch  = kwargs.get('on_touch', None)
-    #def __init__(self, i2c_addr=DEFAULT_ADDR, i2c_bus=1, alert_pin=-1, reset_pin=-1, on_touch=None):
-
+    def __init__(self, i2c_addr=DEFAULT_ADDR, i2c_bus=1, alert_pin=-1, reset_pin=-1, on_touch=None):
         if on_touch == None:
             on_touch = [None] * self.number_of_inputs
 
