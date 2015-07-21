@@ -221,7 +221,7 @@ class Cap1xxx():
     number_of_inputs = 8
     number_of_leds   = 8
   
-    def __init__(self, i2c_addr=DEFAULT_ADDR, i2c_bus=1, alert_pin=-1, reset_pin=-1, on_touch=None):
+    def __init__(self, i2c_addr=DEFAULT_ADDR, i2c_bus=1, alert_pin=-1, reset_pin=-1, on_touch=None, skip_init=False):
         if on_touch == None:
             on_touch = [None] * self.number_of_inputs
 
@@ -262,6 +262,9 @@ class Cap1xxx():
 
         if not self.product_id in self.supported:
             raise Exception("Product ID {} not supported!".format(self.product_id))
+
+        if skip_init:
+	    return
 
         # Enable all inputs with interrupt by default
         self.enable_inputs(0b11111111)
