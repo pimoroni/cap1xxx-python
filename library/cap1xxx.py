@@ -171,6 +171,15 @@ LED_BEHAVIOUR_BREATHE = 0b11
 LED_OPEN_DRAIN = 0 # Default, LED is open-drain output with ext pullup
 LED_PUSH_PULL  = 1 # LED is driven HIGH/LOW with logic 1/0
 
+LED_RAMP_RATE_2000MS = 7
+LED_RAMP_RATE_1500MS = 6
+LED_RAMP_RATE_1250MS = 5
+LED_RAMP_RATE_1000MS = 4
+LED_RAMP_RATE_750MS  = 3
+LED_RAMP_RATE_500MS  = 2
+LED_RAMP_RATE_250MS  = 1
+LED_RAMP_RATE_0MS    = 0
+
 ## Basic stoppable thread wrapper
 #
 #  Adds Event for stopping the execution loop
@@ -555,6 +564,11 @@ class Cap1xxxLeds(Cap1xxx):
 
     def set_led_ramp_alert(self, value):
         self._change_bit(R_LED_CONFIG, 6, value)
+
+    def set_led_direct_ramp_rate(self, rise_rate=0, fall_rate=0):
+        '''Set the rise/fall rate in ms, max 2000'''
+        rate = 0b00000000 + (rise_rate << 4) + fall_rate
+        self._write_byte(R_LED_DIRECT_RAMP, rate)
 
     def set_led_direct_duty(self, duty_min, duty_max):
         value = (duty_max << 4) | duty_min
