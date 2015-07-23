@@ -230,7 +230,6 @@ class Cap1xxx():
         self.i2c        = SMBus(i2c_bus)
         self.alert_pin  = alert_pin
         self.reset_pin  = reset_pin
-        self.count      = 0
         self._delta     = 50
 
         GPIO.setmode(GPIO.BCM)
@@ -366,6 +365,15 @@ class Cap1xxx():
         return True
 
     def start_watching(self):
+        if not self.alert_pin == -1:
+            try:
+                GPIO.add_event_detect(self.alert_pin, GPIO.FALLING, callback=self._handle_alert, bouncetime=1)
+                print("Using event detect on pin {}".format(self.alert_pin))
+                self.clear_interrupt()
+            except:
+                pass
+            return True
+
         if self.async_poll == None:
             self.async_poll = AsyncWorker(self._poll)
             self.async_poll.start()
@@ -373,6 +381,9 @@ class Cap1xxx():
         return False
 
     def stop_watching(self):
+        if not self.alert_pin == -1:
+            GPIO.remove_event_detect(self.alert_pin)
+
         if not self.async_poll == None:
             self.async_poll.stop()
             self.async_poll = None
@@ -412,20 +423,17 @@ class Cap1xxx():
         scale = int((round(ms / 35.0) * 35) - 35) / 35
         return int(scale)
 
+    def _handle_alert(self, pin=-1):
+        inputs = self.get_input_status()
+        for x in range(self.number_of_inputs):
+            self._trigger_handler(x, inputs[x])
+        self.clear_interrupt()
+
     def _poll(self):
         """Single polling pass, should be called in
         a loop, preferably threaded."""
-        self.count += 1        
         if self.wait_for_interrupt():
-            inputs = self.get_input_status()
-            for x in range(self.number_of_inputs):
-                self._trigger_handler(x, inputs[x])
-            self.clear_interrupt()
-        
-            #if self.count > 10:    
-                # Force recalibration on fruit pads
-            #    self._write_byte(0x26, 0b00001111)
-            #    self.count = 0
+            self._handle_alert()
 
     def _trigger_handler(self, channel, event):
         if event == 'none':
