@@ -300,7 +300,6 @@ class Cap1xxx():
                 status = 'none'
                 _delta = self._get_twos_comp(delta[x]) 
                 #threshold = self._read_byte(R_INPUT_1_THRESH + x)
-                #print('Got event with delta: {}, thresh: {}'.format(_delta, threshold[x]))
                 # We only ever want to detect PRESS events
                 # If repeat is disabled, and release detect is enabled
                 if _delta >= threshold[x]: # self._delta:
@@ -368,7 +367,6 @@ class Cap1xxx():
         if not self.alert_pin == -1:
             try:
                 GPIO.add_event_detect(self.alert_pin, GPIO.FALLING, callback=self._handle_alert, bouncetime=1)
-                print("Using event detect on pin {}".format(self.alert_pin))
                 self.clear_interrupt()
             except:
                 pass
