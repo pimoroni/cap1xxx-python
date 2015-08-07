@@ -272,7 +272,7 @@ class Cap1xxx():
             raise Exception("Product ID {} not supported!".format(self.product_id))
 
         if skip_init:
-	    return
+            return
 
         # Enable all inputs with interrupt by default
         self.enable_inputs(0b11111111)
