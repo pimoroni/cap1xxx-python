@@ -9,8 +9,8 @@ try:
     from smbus import SMBus
 except ImportError:
     raise ImportError(
-        "This library requires python-smbus. Install"
-        "with: sudo apt-get install python-smbus or"
+        "This library requires python-smbus. Install "
+        "with: sudo apt-get install python-smbus or "
         "sudo apt-get install python3-smbus")
 
 import time, signal, atexit, sys, threading
