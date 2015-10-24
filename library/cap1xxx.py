@@ -8,7 +8,10 @@ CAP1188 - 8 Inputs, 8 LEDs
 try:
     from smbus import SMBus
 except ImportError:
-    exit("This library requires python-smbus\nInstall with: sudo apt-get install python-smbus")
+    raise ImportError(
+        "This library requires python-smbus. Install"
+        "with: sudo apt-get install python-smbus or"
+        "sudo apt-get install python3-smbus")
 
 import time, signal, atexit, sys, threading
 import RPi.GPIO as GPIO
