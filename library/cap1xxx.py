@@ -368,7 +368,7 @@ class Cap1xxx():
                 return True
             if self._millis() > start + timeout:
                 return False
-            time.sleep(0.000001)
+            time.sleep(0.005)
 
     def on(self, channel=0, event='press', handler=None):
         self.handlers[event][channel] = handler
