@@ -1,0 +1,29 @@
+Source: cap1xxx
+Maintainer: Rogue Marechal <hal@pimoroni.com>
+Homepage: https://github.com/pimoroni/cap1xxx
+Section: python
+Priority: optional
+Build-Depends: debhelper (>= 9.0.0), dh-python, python-all (>= 2.7), python-setuptools, python3-all (>= 3.4), python3-setuptools
+Standards-Version: 3.9.6
+
+Package: python-cap1xxx
+Architecture: all
+Section: python
+Depends: ${misc:Depends}, ${python:Depends}, python-rpi.gpio, python-smbus
+Suggests: i2c-tools
+Description: python library designed to drive various Microchip CAP1xxx touch ICs.
+ Cap-touch Driver Library for Microchip CAP1xxx ICs.
+ Supports communication over i2c only. 
+ .
+ This is the Python 2 version of the package.
+
+Package: python3-cap1xxx
+Architecture: all
+Section: python
+Depends: ${misc:Depends}, ${python3:Depends}, python3-rpi.gpio, python3-smbus
+Suggests: i2c-tools
+Description: python library designed to drive various Microchip CAP1xxx touch ICs.
+ Cap-touch Driver Library for Microchip CAP1xxx ICs.
+ Supports communication over i2c only. 
+ .
+ This is the Python 3 version of the package.
