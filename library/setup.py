@@ -31,7 +31,7 @@ classifiers = ['Development Status :: 5 - Production/Stable',
                'Topic :: System :: Hardware']
 
 setup(name		= 'Cap1xxx',
-	version		= '0.1.0',
+	version		= '0.1.1',
 	author		= 'Philip Howard',
 	author_email= 'phil@pimoroni.com',
 	description	= 'A module to drive various Microchip cap1xxx touch ICs',
