@@ -9,6 +9,10 @@ eggs/
 *.egg-info/
 .installed.cfg
 *.egg
+*.deb
+*.dsc
+*.build
+*.changes
 
 pip-log.txt
 pip-delete-this-directory.txt
