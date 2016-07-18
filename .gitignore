@@ -13,6 +13,7 @@ eggs/
 *.dsc
 *.build
 *.changes
+*.orig.*
 
 pip-log.txt
 pip-delete-this-directory.txt
