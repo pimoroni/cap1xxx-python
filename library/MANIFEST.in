@@ -1,5 +1,5 @@
 include CHANGELOG.txt
 include LICENSE.txt
 include README.txt
-include cap1xxx.py
 include setup.py
+include cap1xxx.py
