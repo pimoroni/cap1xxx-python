@@ -1,0 +1,9 @@
+README
+
+Cap-touch Driver Library for Microchip CAP1xxx ICs. Supports communication over i2c only.
+
+IMPORTANT
+
+the cap1xxx library requires i2c.
+To enable run `curl get.pimoroni.com/i2c | bash`
+or use raspi-config and reboot your Raspberry Pi.
