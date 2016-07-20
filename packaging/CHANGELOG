@@ -1,0 +1,17 @@
+cap1xxx (0.1.2) UNRELEASED; urgency=low
+
+  * Initial commit to Raspbian apt repository
+
+ -- Phil Howard <phil@pimoroni.com>  Fri, 01 Jul 2016 00:00:00 +0000
+
+cap1xxx (0.1.1) UNRELEASED; urgency=low
+
+  * Increased delay in polling loop to avoid CPU hogging
+
+ -- Phil Howard <phil@pimoroni.com>  Tue, 16 Feb 2016 00:00:00 +0000
+
+cap1xxx (0.0.2) UNRELEASED; urgency=low
+
+  * Many little bugfixes, for an actually working library
+
+ -- Phil Howard <phil@pimoroni.com>  Fri, 05 Jun 2015 00:00:00 +0000
