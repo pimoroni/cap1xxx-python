@@ -46,5 +46,5 @@ setup(
     url             = 'http://shop.pimoroni.com',
     classifiers     = classifiers,
     py_modules      = ['cap1xxx'],
-    install_requires= []
+    install_requires= [ 'RPi.GPIO' ]
 )
