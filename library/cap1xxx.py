@@ -6,6 +6,12 @@ CAP1208 - 8 Inputs
 CAP1188 - 8 Inputs, 8 LEDs
 """
 
+import atexit
+import signal
+import sys
+import threading
+import time
+
 try:
     from smbus import SMBus
 except ImportError:
@@ -19,7 +25,6 @@ try:
 except ImportError:
     exit("This library requires the RPi.GPIO module\nInstall with: sudo pip install RPi.GPIO")
 
-import time, signal, atexit, sys, threading
 
 # DEVICE MAP
 DEFAULT_ADDR = 0x28
