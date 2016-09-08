@@ -18,3 +18,5 @@ library/debian/
 packaging/*tar.xz
 pip-log.txt
 pip-delete-this-directory.txt
+.DS_Store
+
