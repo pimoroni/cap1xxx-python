@@ -25,6 +25,7 @@ try:
 except ImportError:
     exit("This library requires the RPi.GPIO module\nInstall with: sudo pip install RPi.GPIO")
 
+__version__ = '0.1.2'
 
 # DEVICE MAP
 DEFAULT_ADDR = 0x28

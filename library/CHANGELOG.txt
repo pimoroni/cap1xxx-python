@@ -1,15 +1,15 @@
 0.1.2
-    -----
+-----
 
 * Initial commit to Raspbian apt repository
 
 0.1.1
-    -----
+-----
 
 * Increased delay in polling loop to avoid CPU hogging
 
 0.0.2
-    -----
+-----
 
 * Many little bugfixes, for an actually working library
 
