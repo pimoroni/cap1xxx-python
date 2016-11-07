@@ -8,16 +8,16 @@ CAP1188 - 8 Inputs, 8 LEDs
 
 import atexit
 import signal
-import sys
 import threading
 import time
+from sys import exit, version_info
 
 try:
     from smbus import SMBus
 except ImportError:
-    if sys.version_info[0] < 3:
+    if version_info[0] < 3:
         exit("This library requires python-smbus\nInstall with: sudo apt-get install python-smbus")
-    elif sys.version_info[0] == 3:
+    elif version_info[0] == 3:
         exit("This library requires python3-smbus\nInstall with: sudo apt-get install python3-smbus")
 
 try:
@@ -25,6 +25,7 @@ try:
 except ImportError:
     exit("This library requires the RPi.GPIO module\nInstall with: sudo pip install RPi.GPIO")
 
+__version__ = '0.1.2'
 
 # DEVICE MAP
 DEFAULT_ADDR = 0x28
