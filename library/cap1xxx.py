@@ -579,8 +579,20 @@ class Cap1xxxLeds(Cap1xxx):
         self._change_bit(R_LED_CONFIG, 6, value)
 
     def set_led_direct_ramp_rate(self, rise_rate=0, fall_rate=0):
-        '''Set the rise/fall rate in ms, max 2000'''
-        rate = 0b00000000 + (rise_rate << 4) + fall_rate
+        '''Set the rise/fall rate in ms, max 2000.
+
+        Rounds input to the nearest valid value.
+
+        Valid values are 0, 250, 500, 750, 1000, 1250, 1500, 2000
+
+        '''
+        rise_rate = int(round(rise_rate / 250.0))
+        fall_rate = int(round(fall_rate / 250.0))
+
+        rise_rate = min(7, rise_rate)
+        fall_rate = min(7, fall_rate)
+
+        rate = (rise_rate << 4) | fall_rate
         self._write_byte(R_LED_DIRECT_RAMP, rate)
 
     def set_led_direct_duty(self, duty_min, duty_max):
