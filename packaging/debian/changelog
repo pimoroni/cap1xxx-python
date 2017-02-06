@@ -1,3 +1,9 @@
+cap1xxx (0.1.3) STABLE; urgency=low
+
+  * Fixed LED rise/fall rate method
+
+ -- Phil Howard <phil@pimoroni.com>  Mon, 06 Feb 2017 00:00:00 +0000
+
 cap1xxx (0.1.2) STABLE; urgency=low
 
   * Initial commit to Raspbian apt repository
