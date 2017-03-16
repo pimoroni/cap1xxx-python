@@ -4,6 +4,7 @@ Supports communication over i2c only.
 Currently supported ICs:
 CAP1208 - 8 Inputs
 CAP1188 - 8 Inputs, 8 LEDs
+CAP1166 - 6 Inputs, 6 LEDs
 """
 
 import atexit
