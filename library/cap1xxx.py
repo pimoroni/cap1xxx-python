@@ -447,9 +447,9 @@ class Cap1xxx():
 
     def _handle_alert(self, pin=-1):
         inputs = self.get_input_status()
+        self.clear_interrupt()
         for x in range(self.number_of_inputs):
             self._trigger_handler(x, inputs[x])
-        self.clear_interrupt()
 
     def _poll(self):
         """Single polling pass, should be called in
