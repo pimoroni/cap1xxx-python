@@ -11,22 +11,22 @@ import atexit
 import signal
 import threading
 import time
-from sys import exit, version_info
+from sys import version_info
 
 try:
     from smbus import SMBus
 except ImportError:
     if version_info[0] < 3:
-        exit("This library requires python-smbus\nInstall with: sudo apt-get install python-smbus")
+        raise ImportError("This library requires python-smbus\nInstall with: sudo apt-get install python-smbus")
     elif version_info[0] == 3:
-        exit("This library requires python3-smbus\nInstall with: sudo apt-get install python3-smbus")
+        raise ImportError("This library requires python3-smbus\nInstall with: sudo apt-get install python3-smbus")
 
 try:
     import RPi.GPIO as GPIO
 except ImportError:
-    exit("This library requires the RPi.GPIO module\nInstall with: sudo pip install RPi.GPIO")
+    raise ImportError("This library requires the RPi.GPIO module\nInstall with: sudo pip install RPi.GPIO")
 
-__version__ = '0.1.3'
+__version__ = '0.1.4'
 
 # DEVICE MAP
 DEFAULT_ADDR = 0x28

@@ -1,3 +1,9 @@
+0.1.4
+-----
+
+* Shim Thread.isAlive() for Python >=3.9
+* Fix R_INPUT_4_THRESH constant
+
 0.1.3
 -----
 
