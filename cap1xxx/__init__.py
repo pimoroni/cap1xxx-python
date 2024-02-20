@@ -153,7 +153,7 @@ R_LED_DIRECT_DUT  = 0x93
 R_LED_DIRECT_RAMP = 0x94
 R_LED_OFF_DELAY   = 0x95
 
-# R/W Power buttonc ontrol
+# R/W Power button control
 R_POWER_BUTTON    = 0x60
 R_POW_BUTTON_CONF = 0x61
 
@@ -223,10 +223,10 @@ class StoppableThread(threading.Thread):
             # block calling thread until thread really has terminated
             self.join()
 
-## Basic thread wrapper class for asyncronously running functions
+## Basic thread wrapper class for asynchronously running functions
 #
 #  Basic thread wrapper class for running functions
-#  asyncronously. Return False from your function
+#  asynchronously. Return False from your function
 #  to abort looping.
 class AsyncWorker(StoppableThread):
     def __init__(self, todo):
