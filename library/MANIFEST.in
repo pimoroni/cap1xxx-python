@@ -1,5 +1,0 @@
-include CHANGELOG.txt
-include LICENSE.txt
-include README.txt
-include setup.py
-include cap1xxx.py
