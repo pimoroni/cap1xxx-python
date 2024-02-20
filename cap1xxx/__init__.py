@@ -8,7 +8,6 @@ CAP1166 - 6 Inputs, 6 LEDs
 """
 
 import atexit
-import signal
 import threading
 import time
 from sys import version_info
@@ -213,12 +212,12 @@ class StoppableThread(threading.Thread):
             return self.is_alive()
 
     def start(self):
-        if self.alive() == False:
+        if not self.alive():
             self.stop_event.clear()
             threading.Thread.start(self)
 
     def stop(self):
-        if self.alive() == True:
+        if self.alive():
             # set event to signal thread to terminate
             self.stop_event.set()
             # block calling thread until thread really has terminated
@@ -235,8 +234,8 @@ class AsyncWorker(StoppableThread):
         self.todo = todo
 
     def run(self):
-        while self.stop_event.is_set() == False:
-            if self.todo() == False:
+        while not self.stop_event.is_set():
+            if not self.todo():
                 self.stop_event.set()
                 break
 
@@ -253,7 +252,7 @@ class Cap1xxx():
     number_of_leds   = 8
   
     def __init__(self, i2c_addr=DEFAULT_ADDR, i2c_bus=1, alert_pin=-1, reset_pin=-1, on_touch=None, skip_init=False):
-        if on_touch == None:
+        if on_touch is None:
             on_touch = [None] * self.number_of_inputs
 
         self.async_poll = None
@@ -290,7 +289,7 @@ class Cap1xxx():
         
         self.product_id = self._get_product_id()
 
-        if not self.product_id in self.supported:
+        if self.product_id not in self.supported:
             raise Exception("Product ID {} not supported!".format(self.product_id))
 
         if skip_init:
@@ -399,11 +398,11 @@ class Cap1xxx():
             try:
                 GPIO.add_event_detect(self.alert_pin, GPIO.FALLING, callback=self._handle_alert, bouncetime=1)
                 self.clear_interrupt()
-            except:
+            except IOError:
                 pass
             return True
 
-        if self.async_poll == None:
+        if self.async_poll is None:
             self.async_poll = AsyncWorker(self._poll)
             self.async_poll.start()
             return True
@@ -413,7 +412,7 @@ class Cap1xxx():
         if not self.alert_pin == -1:
             GPIO.remove_event_detect(self.alert_pin)
 
-        if not self.async_poll == None:
+        if self.async_poll is not None:
             self.async_poll.stop()
             self.async_poll = None
             return True
@@ -567,7 +566,7 @@ class Cap1xxxLeds(Cap1xxx):
         '''Set the overall period of a pulse from 32ms to 4.064 seconds'''
         period_in_seconds = min(period_in_seconds, 4.064)
         value = int(period_in_seconds * 1000.0 / 32.0) & 0b01111111
-        self._change_bits(R_PULSE_LED_2_PER, 0, 7, value)
+        self._change_bits(R_LED_PULSE_2_PER, 0, 7, value)
 
     def set_led_breathe_period(self, period_in_seconds):
         period_in_seconds = min(period_in_seconds, 4.064)
