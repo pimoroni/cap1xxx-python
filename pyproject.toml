@@ -35,6 +35,7 @@ classifiers = [
     "Topic :: System :: Hardware",
 ]
 dependencies = [
+    "smbus2"
 ]
 
 [project.urls]
