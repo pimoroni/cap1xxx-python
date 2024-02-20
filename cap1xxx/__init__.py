@@ -303,7 +303,7 @@ class Cap1xxx:
         self.product_id = self._get_product_id()
 
         if self.product_id not in self.supported:
-            raise Exception("Product ID {} not supported!".format(self.product_id))
+            raise RuntimeError(f"Product ID {self.product_id} not supported!")
 
         if skip_init:
             return
