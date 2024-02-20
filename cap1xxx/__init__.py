@@ -202,7 +202,7 @@ class StoppableThread(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
         self.stop_event = threading.Event()
-        self.daemon = True         
+        self.daemon = True
 
     def alive(self):
         try:
@@ -250,7 +250,7 @@ class Cap1xxx():
     supported = [PID_CAP1208, PID_CAP1188, PID_CAP1166]
     number_of_inputs = 8
     number_of_leds   = 8
-  
+
     def __init__(self, i2c_addr=DEFAULT_ADDR, i2c_bus=1, alert_pin=-1, reset_pin=-1, on_touch=None, skip_init=False):
         if on_touch is None:
             on_touch = [None] * self.number_of_inputs
@@ -286,7 +286,7 @@ class Cap1xxx():
         self.input_pressed     = [False]  * self.number_of_inputs
         self.repeat_enabled    = 0b00000000
         self.release_enabled   = 0b11111111
-        
+
         self.product_id = self._get_product_id()
 
         if self.product_id not in self.supported:
@@ -328,7 +328,7 @@ class Cap1xxx():
         for x in range(self.number_of_inputs):
             if (1 << x) & touched:
                 status = 'none'
-                _delta = self._get_twos_comp(delta[x]) 
+                _delta = self._get_twos_comp(delta[x])
                 #threshold = self._read_byte(R_INPUT_1_THRESH + x)
                 # We only ever want to detect PRESS events
                 # If repeat is disabled, and release detect is enabled
@@ -361,7 +361,7 @@ class Cap1xxx():
         if ( val & (1<< (8 - 1))) != 0:
             val = val - (1 << 8)
         return val
-        
+
     def clear_interrupt(self):
         """Clear the interrupt flag, bit 0, of the
         main control register"""
@@ -423,10 +423,10 @@ class Cap1xxx():
 
     def auto_recalibrate(self, value):
         self._change_bit(R_GENERAL_CONFIG, 3, value)
-        
+
     def filter_analog_noise(self, value):
         self._change_bit(R_GENERAL_CONFIG, 4, not value)
-        
+
     def filter_digital_noise(self, value):
         self._change_bit(R_GENERAL_CONFIG, 5, not value)
 
@@ -439,7 +439,7 @@ class Cap1xxx():
         self._write_byte(R_INPUT_CONFIG2, input_config)
 
     def set_repeat_rate(self, ms):
-        """Set repeat rate in milliseconds, 
+        """Set repeat rate in milliseconds,
         Clamps to multiples of 35 from 35 to 560"""
         repeat_rate = self._calc_touch_rate(ms)
         input_config = self._read_byte(R_INPUT_CONFIG)
@@ -527,7 +527,7 @@ class Cap1xxx():
 
     def __del__(self):
         self.stop_watching()
-        
+
 class Cap1xxxLeds(Cap1xxx):
     def set_led_linking(self, led_index, state):
         if led_index >= self.number_of_leds:
@@ -538,7 +538,7 @@ class Cap1xxxLeds(Cap1xxx):
         if led_index >= self.number_of_leds:
             return False
         self._change_bit(R_LED_OUTPUT_TYPE, led_index, state)
- 
+
     def set_led_state(self, led_index, state):
         if led_index >= self.number_of_leds:
             return False
@@ -665,4 +665,3 @@ def DetectCap(i2c_addr, i2c_bus, product_id):
             return False
     except IOError:
         return False
-    
