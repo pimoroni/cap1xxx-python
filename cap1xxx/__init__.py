@@ -543,11 +543,12 @@ class Cap1xxx:
             self._clear_bit(register, bit)
 
     def _change_bits(self, register, offset, size, bits):
-        original_value = self._read_byte(register)
-        for x in range(size):
-            original_value &= ~(1 << (offset + x))
-        original_value |= bits << offset
-        self._write_byte(register, original_value)
+        value = self._read_byte(register)
+        mask = (1 << size) - 1      # EG: 1 << 4 - 1 = 0b1111
+        bits &= mask                # Clear any out of range bits in our new value
+        value &= ~(mask << offset)  # Clear bits in target register
+        value |= bits << offset     # Set new bits in target register
+        self._write_byte(register, value)
 
     def __del__(self):
         self.stop_watching()
