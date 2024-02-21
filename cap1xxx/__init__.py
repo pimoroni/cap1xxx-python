@@ -332,7 +332,7 @@ class Cap1xxx:
         self._write_byte(
             R_SAMPLING_CONFIG, 0b00001000
         )  # 1sample per measure, 1.28ms time, 35ms cycle
-        self._write_byte(R_SENSITIVITY, 0b01100000)  # 2x sensitivity
+        self.set_sensitivity(2) # 2x sensitivity (default 32x)
         self._write_byte(R_GENERAL_CONFIG, 0b00111000)
         self._write_byte(R_CONFIGURATION2, 0b01100000)
         self.set_touch_delta(10)
@@ -467,6 +467,16 @@ class Cap1xxx:
         input_config = self._read_byte(R_INPUT_CONFIG)
         input_config = (input_config & ~0b1111) | repeat_rate
         self._write_byte(R_INPUT_CONFIG, input_config)
+
+    def  get_sensitivity(self):
+        delta_sense = (self._read_byte(R_SENSITIVITY) >> 4) & 0x07
+        return 1 << (7 - delta_sense)
+
+    def set_sensitivity(self, multiplier):
+        try:
+            self._change_bits(R_SENSITIVITY, 4, 3, SENSITIVITY[multiplier])
+        except KeyError:
+            raise ValueError(f"Invalid sensitivity: {multiplier}")
 
     def _calc_touch_rate(self, ms):
         ms = min(max(ms, 0), 560)

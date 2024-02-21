@@ -27,3 +27,21 @@ def test_outputs(gpio, smbus2):
     cap1188.set_led_state(0, True)
 
     assert mock.read_byte_data(cap1xxx.DEFAULT_ADDR, cap1xxx.R_LED_OUTPUT_CON) == 0b00000001
+
+
+def test_sensitivity(gpio, smbus2):
+    import cap1xxx
+
+    mock = MockSMBus(1, default_registers={
+        cap1xxx.R_PRODUCT_ID: cap1xxx.PID_CAP1188
+    })
+
+    smbus2.SMBus.return_value = mock
+
+    cap1188 = cap1xxx.Cap1188()
+
+    assert cap1188.get_sensitivity() == 2
+
+    for sensitivity in cap1xxx.SENSITIVITY.keys():
+        cap1188.set_sensitivity(sensitivity)
+        assert cap1188.get_sensitivity() == sensitivity
