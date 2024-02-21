@@ -10,13 +10,12 @@ CAP1166 - 6 Inputs, 6 LEDs
 import atexit
 import threading
 import time
+from datetime import timedelta
 
+import gpiod
+import gpiodevice
+from gpiod.line import Bias, Direction, Edge, Value
 from smbus2 import SMBus
-
-try:
-    import RPi.GPIO as GPIO
-except ImportError:
-    raise ImportError("This library requires the RPi.GPIO module\nInstall with: sudo pip install RPi.GPIO")
 
 __version__ = "0.1.4"
 
@@ -260,8 +259,8 @@ class Cap1xxx:
         self,
         i2c_addr=DEFAULT_ADDR,
         i2c_bus=1,
-        alert_pin=-1,
-        reset_pin=-1,
+        alert_pin=None,
+        reset_pin=None,
         on_touch=None,
         skip_init=False,
     ):
@@ -275,16 +274,25 @@ class Cap1xxx:
         self.reset_pin = reset_pin
         self._delta = 50
 
-        GPIO.setmode(GPIO.BCM)
-        if not self.alert_pin == -1:
-            GPIO.setup(self.alert_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        if self.reset_pin is not None or self.alert_pin is not None:
+            _gpiochip = gpiodevice.find_chip_by_platform()
 
-        if not self.reset_pin == -1:
-            GPIO.setup(self.reset_pin, GPIO.OUT)
-            GPIO.setup(self.reset_pin, GPIO.LOW)
-            GPIO.output(self.reset_pin, GPIO.HIGH)
-            time.sleep(0.01)
-            GPIO.output(self.reset_pin, GPIO.LOW)
+            lines = {}
+
+            if self.alert_pin is not None:
+                self.alert_pin = _gpiochip.line_offset_from_id(self.alert_pin)
+                lines[self.alert_pin] = gpiod.LineSettings(direction=Direction.INPUT, bias=Bias.PULL_UP, edge_detection=Edge.FALLING, debounce_period=timedelta(milliseconds=1))
+
+            if self.reset_pin is not None:
+                self.reset_pin = _gpiochip.line_offset_from_id(self.reset_pin)
+                lines[self.reset_pin] = gpiod.LineSettings(direction=Direction.OUTPUT, bias=Bias.DISABLED, output_value=Value.INACTIVE)
+
+            self._gpiolines = _gpiochip.request_lines(consumer="cap1xxx", config=lines)
+
+            if self.reset_pin is not None:
+                self._gpiolines.set_value(self.reset_pin, Value.ACTIVE)
+                time.sleep(0.01)
+                self._gpiolines.set_value(self.reset_pin, Value.INACTIVE)
 
         self.handlers = {
             "press": [None] * self.number_of_inputs,
@@ -388,18 +396,25 @@ class Cap1xxx:
         self._write_byte(R_MAIN_CONTROL, main)
 
     def _interrupt_status(self):
-        if self.alert_pin == -1:
+        if self.alert_pin is None:
             return self._read_byte(R_MAIN_CONTROL) & 1
         else:
-            return not GPIO.input(self.alert_pin)
+            return self._gpiolines.get_value(self.alert_pin) == Value.INACTIVE
 
     def wait_for_interrupt(self, timeout=100):
         """Wait for, interrupt, bit 0 of the main
         control register to be set, indicating an
         input has been triggered."""
+        if self.alert_pin is not None:
+            events = self._gpiolines.wait_edge_events(timedelta(milliseconds=timeout))
+            if events:
+                self._gpiolines.read_edge_events()
+                return True
+            return False
+
         start = self._millis()
         while True:
-            status = self._interrupt_status()
+            status = self._interrupt_status(timeout)
             if status:
                 return True
             if self._millis() > start + timeout:
@@ -412,19 +427,6 @@ class Cap1xxx:
         return True
 
     def start_watching(self):
-        if not self.alert_pin == -1:
-            try:
-                GPIO.add_event_detect(
-                    self.alert_pin,
-                    GPIO.FALLING,
-                    callback=self._handle_alert,
-                    bouncetime=1,
-                )
-                self.clear_interrupt()
-            except IOError:
-                pass
-            return True
-
         if self.async_poll is None:
             self.async_poll = AsyncWorker(self._poll)
             self.async_poll.start()
@@ -432,9 +434,6 @@ class Cap1xxx:
         return False
 
     def stop_watching(self):
-        if not self.alert_pin == -1:
-            GPIO.remove_event_detect(self.alert_pin)
-
         if self.async_poll is not None:
             self.async_poll.stop()
             self.async_poll = None
