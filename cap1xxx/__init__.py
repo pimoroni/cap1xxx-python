@@ -414,7 +414,7 @@ class Cap1xxx:
 
         start = self._millis()
         while True:
-            status = self._interrupt_status(timeout)
+            status = self._interrupt_status()
             if status:
                 return True
             if self._millis() > start + timeout:
