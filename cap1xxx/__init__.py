@@ -17,7 +17,7 @@ import gpiodevice
 from gpiod.line import Bias, Direction, Edge, Value
 from smbus2 import SMBus
 
-__version__ = "0.1.4"
+__version__ = "1.0.0"
 
 # DEVICE MAP
 DEFAULT_ADDR = 0x28
