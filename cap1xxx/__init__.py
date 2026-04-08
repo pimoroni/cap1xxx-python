@@ -494,6 +494,7 @@ class Cap1xxx:
         a loop, preferably threaded."""
         if self.wait_for_interrupt():
             self._handle_alert()
+        return True
 
     def _trigger_handler(self, channel, event):
         if event == "none":
