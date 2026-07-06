@@ -23,4 +23,3 @@
 -----
 
 * Many little bugfixes, for an actually working library
-
