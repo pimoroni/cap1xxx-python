@@ -268,6 +268,7 @@ class Cap1xxx:
             on_touch = [None] * self.number_of_inputs
 
         self.async_poll = None
+        self._watch = None
         self.i2c_addr = i2c_addr
         self.i2c = SMBus(i2c_bus)
         self.alert_pin = alert_pin
@@ -406,11 +407,7 @@ class Cap1xxx:
         control register to be set, indicating an
         input has been triggered."""
         if self.alert_pin is not None:
-            events = self._gpiolines.wait_edge_events(timedelta(milliseconds=timeout))
-            if events:
-                self._gpiolines.read_edge_events()
-                return True
-            return False
+            return gpiodevice.wait_for_edge(self._gpiolines, self.alert_pin, timeout / 1000.0) is not None
 
         start = self._millis()
         while True:
@@ -427,18 +424,30 @@ class Cap1xxx:
         return True
 
     def start_watching(self):
-        if self.async_poll is None:
+        if self.async_poll is not None or self._watch is not None:
+            return False
+        if self.alert_pin is not None:
+            # Canonical libgpiod edge watcher for the wired ALERT pin.
+            self._watch = gpiodevice.Watch(
+                self._gpiolines, {self.alert_pin: lambda event: self._handle_alert()}
+            ).start()
+        else:
+            # No ALERT pin wired: fall back to polling the I2C interrupt register.
             self.async_poll = AsyncWorker(self._poll)
             self.async_poll.start()
-            return True
-        return False
+        return True
 
     def stop_watching(self):
+        stopped = False
+        if self._watch is not None:
+            self._watch.close()
+            self._watch = None
+            stopped = True
         if self.async_poll is not None:
             self.async_poll.stop()
             self.async_poll = None
-            return True
-        return False
+            stopped = True
+        return stopped
 
     def set_touch_delta(self, delta):
         self._delta = delta

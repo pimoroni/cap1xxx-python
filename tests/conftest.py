@@ -40,8 +40,15 @@ def smbus2():
 
 @pytest.fixture(scope="function")
 def gpio():
-    sys.modules["RPi"] = mock.Mock()
-    sys.modules["RPi.GPIO"] = mock.MagicMock()
-    yield
-    del sys.modules["RPi"]
-    del sys.modules["RPi.GPIO"]
+    """Mock the libgpiod stack (gpiod / gpiodevice) used for reset & ALERT pins."""
+    gpiodevice = mock.MagicMock()
+    chip = mock.MagicMock()
+    chip.line_offset_from_id.return_value = 0
+    gpiodevice.find_chip_by_platform.return_value = chip
+    gpiodevice.get_pin.return_value = (mock.MagicMock(), 0)
+    sys.modules["gpiod"] = mock.MagicMock()
+    sys.modules["gpiod.line"] = mock.MagicMock()
+    sys.modules["gpiodevice"] = gpiodevice
+    yield gpiodevice
+    for name in ("gpiod", "gpiod.line", "gpiodevice"):
+        sys.modules.pop(name, None)
