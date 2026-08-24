@@ -11,13 +11,17 @@ import atexit
 import threading
 import time
 from datetime import timedelta
+from importlib.metadata import PackageNotFoundError, version
 
 import gpiod
 import gpiodevice
 from gpiod.line import Bias, Direction, Edge, Value
 from smbus2 import SMBus
 
-__version__ = "1.0.0"
+try:
+    __version__ = version("cap1xxx")
+except PackageNotFoundError:
+    __version__ = "0.0.0"
 
 # DEVICE MAP
 DEFAULT_ADDR = 0x28
