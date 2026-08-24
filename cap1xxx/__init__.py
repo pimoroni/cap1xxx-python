@@ -12,6 +12,7 @@ import threading
 import time
 from datetime import timedelta
 from importlib.metadata import PackageNotFoundError, version
+from typing import ClassVar
 
 import gpiod
 import gpiodevice
@@ -255,7 +256,7 @@ class CapTouchEvent:
 
 
 class Cap1xxx:
-    supported = [PID_CAP1208, PID_CAP1188, PID_CAP1166]
+    supported: ClassVar[list] = [PID_CAP1208, PID_CAP1188, PID_CAP1166]
     number_of_inputs = 8
     number_of_leds = 8
 
@@ -363,23 +364,13 @@ class Cap1xxx:
                 if _delta >= threshold[x]:  # self._delta:
                     self.input_delta[x] = _delta
                     #  Touch down event
-                    if self.input_status[x] in ["press", "held"]:
-                        if self.repeat_enabled & (1 << x):
-                            status = "held"
+                    if self.input_status[x] in ["press", "held"] and self.repeat_enabled & (1 << x):
+                        status = "held"
                     if self.input_status[x] in ["none", "release"]:
-                        if self.input_pressed[x]:
-                            status = "none"
-                        else:
-                            status = "press"
+                        status = "none" if self.input_pressed[x] else "press"
                 else:
                     # Touch release event
-                    if (
-                        self.release_enabled & (1 << x)
-                        and not self.input_status[x] == "release"
-                    ):
-                        status = "release"
-                    else:
-                        status = "none"
+                    status = "release" if self.release_enabled & 1 << x and self.input_status[x] != "release" else "none"
 
                 self.input_status[x] = status
                 self.input_pressed[x] = status in ["press", "held", "none"]
@@ -489,7 +480,7 @@ class Cap1xxx:
         try:
             self._change_bits(R_SENSITIVITY, 4, 3, SENSITIVITY[multiplier])
         except KeyError:
-            raise ValueError(f"Invalid sensitivity: {multiplier}")
+            raise ValueError(f"Invalid sensitivity: {multiplier}") from None
 
     def _calc_touch_rate(self, ms):
         ms = min(max(ms, 0), 560)
@@ -552,7 +543,7 @@ class Cap1xxx:
         return self.i2c.read_i2c_block_data(self.i2c_addr, register, length)
 
     def _millis(self):
-        return int(round(time.time() * 1000))
+        return round(time.time() * 1000)
 
     def _set_bit(self, register, bit):
         self._write_byte(register, self._read_byte(register) | (1 << bit))
@@ -644,8 +635,8 @@ class Cap1xxxLeds(Cap1xxx):
         Valid values are 0, 250, 500, 750, 1000, 1250, 1500, 2000
 
         """
-        rise_rate = int(round(rise_rate / 250.0))
-        fall_rate = int(round(fall_rate / 250.0))
+        rise_rate = round(rise_rate / 250.0)
+        fall_rate = round(fall_rate / 250.0)
 
         rise_rate = min(7, rise_rate)
         fall_rate = min(7, fall_rate)
@@ -695,27 +686,24 @@ class Cap1xxxLeds(Cap1xxx):
 
 
 class Cap1208(Cap1xxx):
-    supported = [PID_CAP1208]
+    supported: ClassVar[list] = [PID_CAP1208]
 
 
 class Cap1188(Cap1xxxLeds):
     number_of_leds = 8
-    supported = [PID_CAP1188]
+    supported: ClassVar[list] = [PID_CAP1188]
 
 
 class Cap1166(Cap1xxxLeds):
     number_of_inputs = 6
     number_of_leds = 6
-    supported = [PID_CAP1166]
+    supported: ClassVar[list] = [PID_CAP1166]
 
 
 def DetectCap(i2c_addr, i2c_bus, product_id):
     bus = SMBus(i2c_bus)
 
     try:
-        if bus.read_byte_data(i2c_addr, R_PRODUCT_ID) == product_id:
-            return True
-        else:
-            return False
-    except IOError:
+        return bus.read_byte_data(i2c_addr, R_PRODUCT_ID) == product_id
+    except OSError:
         return False
