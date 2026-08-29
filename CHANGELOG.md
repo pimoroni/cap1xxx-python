@@ -1,3 +1,20 @@
+1.0.1
+-----
+
+* Fix listener polling stopping after one cycle
+* Use gpiodevice.Watch/wait_for_edge for the wired ALERT pin
+* Packaging: uv-dynamic-versioning, trusted publishing, boilerplate install.sh
+
+1.0.0
+-----
+
+* BREAKING: Ported from RPi.GPIO to gpiod/gpiodevice
+* BREAKING: Switched from smbus to smbus2
+* Repackaged to pyproject.toml/hatch, library/ flattened to repo root
+* Added set_sensitivity()/get_sensitivity()
+* Fix sensitivity mappings
+* Fix call to interrupt_status()
+
 0.1.4
 -----
 
@@ -23,4 +40,3 @@
 -----
 
 * Many little bugfixes, for an actually working library
-

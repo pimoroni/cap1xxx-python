@@ -11,13 +11,18 @@ import atexit
 import threading
 import time
 from datetime import timedelta
+from importlib.metadata import PackageNotFoundError, version
+from typing import ClassVar
 
 import gpiod
 import gpiodevice
 from gpiod.line import Bias, Direction, Edge, Value
 from smbus2 import SMBus
 
-__version__ = "1.0.0"
+try:
+    __version__ = version("cap1xxx")
+except PackageNotFoundError:
+    __version__ = "0.0.0"
 
 # DEVICE MAP
 DEFAULT_ADDR = 0x28
@@ -251,7 +256,7 @@ class CapTouchEvent:
 
 
 class Cap1xxx:
-    supported = [PID_CAP1208, PID_CAP1188, PID_CAP1166]
+    supported: ClassVar[list] = [PID_CAP1208, PID_CAP1188, PID_CAP1166]
     number_of_inputs = 8
     number_of_leds = 8
 
@@ -268,6 +273,7 @@ class Cap1xxx:
             on_touch = [None] * self.number_of_inputs
 
         self.async_poll = None
+        self._watch = None
         self.i2c_addr = i2c_addr
         self.i2c = SMBus(i2c_bus)
         self.alert_pin = alert_pin
@@ -358,23 +364,13 @@ class Cap1xxx:
                 if _delta >= threshold[x]:  # self._delta:
                     self.input_delta[x] = _delta
                     #  Touch down event
-                    if self.input_status[x] in ["press", "held"]:
-                        if self.repeat_enabled & (1 << x):
-                            status = "held"
+                    if self.input_status[x] in ["press", "held"] and self.repeat_enabled & (1 << x):
+                        status = "held"
                     if self.input_status[x] in ["none", "release"]:
-                        if self.input_pressed[x]:
-                            status = "none"
-                        else:
-                            status = "press"
+                        status = "none" if self.input_pressed[x] else "press"
                 else:
                     # Touch release event
-                    if (
-                        self.release_enabled & (1 << x)
-                        and not self.input_status[x] == "release"
-                    ):
-                        status = "release"
-                    else:
-                        status = "none"
+                    status = "release" if self.release_enabled & 1 << x and self.input_status[x] != "release" else "none"
 
                 self.input_status[x] = status
                 self.input_pressed[x] = status in ["press", "held", "none"]
@@ -406,11 +402,7 @@ class Cap1xxx:
         control register to be set, indicating an
         input has been triggered."""
         if self.alert_pin is not None:
-            events = self._gpiolines.wait_edge_events(timedelta(milliseconds=timeout))
-            if events:
-                self._gpiolines.read_edge_events()
-                return True
-            return False
+            return gpiodevice.wait_for_edge(self._gpiolines, self.alert_pin, timeout / 1000.0) is not None
 
         start = self._millis()
         while True:
@@ -427,18 +419,30 @@ class Cap1xxx:
         return True
 
     def start_watching(self):
-        if self.async_poll is None:
+        if self.async_poll is not None or self._watch is not None:
+            return False
+        if self.alert_pin is not None:
+            # Canonical libgpiod edge watcher for the wired ALERT pin.
+            self._watch = gpiodevice.Watch(
+                self._gpiolines, {self.alert_pin: lambda event: self._handle_alert()}
+            ).start()
+        else:
+            # No ALERT pin wired: fall back to polling the I2C interrupt register.
             self.async_poll = AsyncWorker(self._poll)
             self.async_poll.start()
-            return True
-        return False
+        return True
 
     def stop_watching(self):
+        stopped = False
+        if self._watch is not None:
+            self._watch.close()
+            self._watch = None
+            stopped = True
         if self.async_poll is not None:
             self.async_poll.stop()
             self.async_poll = None
-            return True
-        return False
+            stopped = True
+        return stopped
 
     def set_touch_delta(self, delta):
         self._delta = delta
@@ -476,7 +480,7 @@ class Cap1xxx:
         try:
             self._change_bits(R_SENSITIVITY, 4, 3, SENSITIVITY[multiplier])
         except KeyError:
-            raise ValueError(f"Invalid sensitivity: {multiplier}")
+            raise ValueError(f"Invalid sensitivity: {multiplier}") from None
 
     def _calc_touch_rate(self, ms):
         ms = min(max(ms, 0), 560)
@@ -494,6 +498,7 @@ class Cap1xxx:
         a loop, preferably threaded."""
         if self.wait_for_interrupt():
             self._handle_alert()
+        return True
 
     def _trigger_handler(self, channel, event):
         if event == "none":
@@ -538,7 +543,7 @@ class Cap1xxx:
         return self.i2c.read_i2c_block_data(self.i2c_addr, register, length)
 
     def _millis(self):
-        return int(round(time.time() * 1000))
+        return round(time.time() * 1000)
 
     def _set_bit(self, register, bit):
         self._write_byte(register, self._read_byte(register) | (1 << bit))
@@ -630,8 +635,8 @@ class Cap1xxxLeds(Cap1xxx):
         Valid values are 0, 250, 500, 750, 1000, 1250, 1500, 2000
 
         """
-        rise_rate = int(round(rise_rate / 250.0))
-        fall_rate = int(round(fall_rate / 250.0))
+        rise_rate = round(rise_rate / 250.0)
+        fall_rate = round(fall_rate / 250.0)
 
         rise_rate = min(7, rise_rate)
         fall_rate = min(7, fall_rate)
@@ -681,27 +686,24 @@ class Cap1xxxLeds(Cap1xxx):
 
 
 class Cap1208(Cap1xxx):
-    supported = [PID_CAP1208]
+    supported: ClassVar[list] = [PID_CAP1208]
 
 
 class Cap1188(Cap1xxxLeds):
     number_of_leds = 8
-    supported = [PID_CAP1188]
+    supported: ClassVar[list] = [PID_CAP1188]
 
 
 class Cap1166(Cap1xxxLeds):
     number_of_inputs = 6
     number_of_leds = 6
-    supported = [PID_CAP1166]
+    supported: ClassVar[list] = [PID_CAP1166]
 
 
 def DetectCap(i2c_addr, i2c_bus, product_id):
     bus = SMBus(i2c_bus)
 
     try:
-        if bus.read_byte_data(i2c_addr, R_PRODUCT_ID) == product_id:
-            return True
-        else:
-            return False
-    except IOError:
+        return bus.read_byte_data(i2c_addr, R_PRODUCT_ID) == product_id
+    except OSError:
         return False
