@@ -1,6 +1,6 @@
 import sys
+from unittest import mock
 
-import mock
 import pytest
 
 
@@ -9,7 +9,7 @@ class MockSMBus:
     def __init__(self, i2c_bus, default_registers=None):
         self.regs = [0 for _ in range(255)]
         if default_registers is not None:
-            for index in default_registers.keys():
+            for index in default_registers:
                 self.regs[index] = default_registers.get(index)
 
     def write_i2c_block_data(self, i2c_address, register, values):

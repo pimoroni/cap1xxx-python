@@ -42,6 +42,6 @@ def test_sensitivity(gpio, smbus2):
 
     assert cap1188.get_sensitivity() == 2
 
-    for sensitivity in cap1xxx.SENSITIVITY.keys():
+    for sensitivity in cap1xxx.SENSITIVITY:
         cap1188.set_sensitivity(sensitivity)
         assert cap1188.get_sensitivity() == sensitivity
